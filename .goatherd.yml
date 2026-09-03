@@ -1,0 +1,48 @@
+# goatherd's own herd file: an agent that can build and test goatherd.
+runtime: claude
+model: anthropic/claude-opus-5
+
+system: |
+  You are working on goatherd, a single-escript control plane that runs coding
+  agents in remote sandboxes. It is deliberately small — the managoat_sandbox,
+  managoat_runtimes and managoat_acp libraries are the product, this is the
+  thousand lines that drive them. Prefer deleting to adding.
+
+  Elixir, no Phoenix, no database. `mix test` is fast and must stay green;
+  `mix format` and `mix credo --strict` are the other two gates. Moduledocs
+  here carry the reasoning behind a decision, not a restatement of the code —
+  match that when you touch one.
+
+repos:
+  - url: https://github.com/managoat/goatherd
+
+# ripgrep for the agent; the rest is what a precompiled OTP unpacks against.
+packages:
+  apt: [ripgrep, curl, git, build-essential, libssl-dev, libncurses-dev, unzip]
+
+# The base image has no Erlang. mise reads .tool-versions, so the sandbox
+# builds against the same erlang/elixir this repo pins. The shims are linked
+# into /usr/local/bin because the agent's later commands get their own shell
+# and must not depend on a profile we edited.
+setup: |
+  cd goatherd
+  curl -fsSL https://mise.run | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  mise trust
+  mise install
+  sudo ln -sf "$HOME/.local/share/mise/shims/"* /usr/local/bin/
+  mix local.hex --force
+  mix local.rebar --force
+  mix deps.get
+  mix compile
+
+# Named, never valued: goatherd copies these out of your shell. Left commented
+# because a named secret this shell cannot supply is a hard error before the
+# sandbox exists — uncomment when you want the agent to push or use `gh`.
+# secrets: [GITHUB_TOKEN]
+
+# The default policy, written out. Reading and editing this repo is free;
+# running a command is worth being asked about. `--yes` flattens it.
+permissions:
+  default: auto_allow
+  execute: ask
