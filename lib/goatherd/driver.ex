@@ -87,7 +87,8 @@ defmodule Goatherd.Driver do
       peer: peer,
       render: render,
       opts: opts,
-      stderr: ""
+      stderr: "",
+      replayed: nil
     }
   end
 
@@ -159,7 +160,27 @@ defmodule Goatherd.Driver do
              cwd: run.cwd,
              attach: run.prompt_id
            ) do
-      loop(context(run, handle, command, peer, render, opts))
+      ctx = context(run, handle, command, peer, render, opts)
+      loop(%{ctx | replayed: seen_lines(run)})
+    end
+  end
+
+  # A sandbox that replays on attach replays the *tail* — Sprites sends one
+  # 16 KiB chunk starting mid-line — and `Managoat.ACP.Peer` drops the partial
+  # first line but leaves de-duplication to its owner, by content. We are the
+  # owner: without this, `goatherd attach` re-renders and re-appends every
+  # tool call the interrupted driver already showed.
+  #
+  # The set is consulted only until the first line we have never seen, which
+  # is where the replay ends and the live stream begins. Bounding it there
+  # matters: an agent legitimately repeats itself, and a set consulted for the
+  # whole turn would swallow a genuine second identical tool call.
+  defp seen_lines(%Run{transcript: nil}), do: nil
+
+  defp seen_lines(%Run{transcript: path}) do
+    case File.read(path) do
+      {:ok, body} -> body |> String.split("\n", trim: true) |> MapSet.new()
+      _ -> nil
     end
   end
 
@@ -338,15 +359,16 @@ defmodule Goatherd.Driver do
   end
 
   defp handle_acp(ctx, {:lines, _stream, data}) do
-    append_transcript(ctx.run, data)
+    {fresh, replayed} = drop_replayed(String.split(data, "\n", trim: true), ctx.replayed)
+
+    Enum.each(fresh, &append_transcript(ctx.run, &1 <> "\n"))
 
     render =
-      data
-      |> String.split("\n", trim: true)
+      fresh
       |> Enum.flat_map(&Blocks.from_line/1)
       |> Enum.reduce(ctx.render, &Render.block(&2, &1))
 
-    {:cont, %{ctx | render: render}}
+    {:cont, %{ctx | render: render, replayed: replayed}}
   end
 
   defp handle_acp(ctx, {:session, session_id}) do
@@ -385,6 +407,27 @@ defmodule Goatherd.Driver do
   # records. There is no turn record here, and a line about either would be
   # noise in a transcript a human is reading.
   defp handle_acp(ctx, _payload), do: {:cont, ctx}
+
+  @doc """
+  Split a replayed prefix off the front of an attached stream.
+
+  Returns the lines to act on and the set to carry forward. `nil` for the set
+  means "replay is over" — reached as soon as a line arrives that we have not
+  seen, which is where the sandbox's buffer ends and the live stream begins.
+
+  Bounded there on purpose: an agent legitimately repeats itself, and a set
+  consulted for the whole turn would swallow a genuine second identical tool
+  call.
+  """
+  @spec drop_replayed([String.t()], MapSet.t() | nil) :: {[String.t()], MapSet.t() | nil}
+  def drop_replayed(lines, nil), do: {lines, nil}
+
+  def drop_replayed(lines, seen) do
+    case Enum.split_while(lines, &MapSet.member?(seen, &1)) do
+      {_dropped, []} -> {[], seen}
+      {_dropped, rest} -> {rest, nil}
+    end
+  end
 
   defp ask_permission(ctx, request_id, tool, options) do
     render = Render.break(ctx.render)
