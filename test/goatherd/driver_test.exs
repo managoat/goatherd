@@ -42,4 +42,30 @@ defmodule Goatherd.DriverTest do
       assert Driver.policy(config, []) == %{"default" => "auto_deny"}
     end
   end
+
+  describe "session_age/1" do
+    test "prefers last activity over creation" do
+      session = %{created_at: "2026-01-01T00:00:00Z", last_activity_at: "2026-09-01T00:00:00Z"}
+      assert Driver.session_age(session) == "2026-09-01T00:00:00Z"
+    end
+
+    test "falls back to creation, and to a sortable constant when neither is there" do
+      assert Driver.session_age(%{created_at: "2026-01-01T00:00:00Z"}) == "2026-01-01T00:00:00Z"
+      assert Driver.session_age(%{}) == ""
+    end
+
+    test "handles a DateTime as well as a string, since the field is not in the contract" do
+      {:ok, at, _} = DateTime.from_iso8601("2026-09-01T00:00:00Z")
+      assert Driver.session_age(%{last_activity_at: at}) == "2026-09-01T00:00:00Z"
+    end
+
+    test "picks the newest session, not the first one listed" do
+      sessions = [
+        %{id: "stale", last_activity_at: "2026-01-01T00:00:00Z"},
+        %{id: "live", last_activity_at: "2026-09-01T00:00:00Z"}
+      ]
+
+      assert %{id: "live"} = Enum.max_by(sessions, &Driver.session_age/1)
+    end
+  end
 end

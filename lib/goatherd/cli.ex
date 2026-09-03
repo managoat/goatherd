@@ -108,8 +108,12 @@ defmodule Goatherd.CLI do
   defp say(id, prompt, opts) do
     boot!()
 
+    # The herd file is read from the directory the run was *started* in, not
+    # from wherever the shell happens to be now. `goatherd say` from another
+    # repo would otherwise pick up that repo's herd file and drive the wrong
+    # agent at a session it does not own.
     with {:ok, run} <- State.fetch(id),
-         {:ok, config} <- load_config(opts) do
+         {:ok, config} <- load_config(opts, run.workdir) do
       case Driver.continue(run, prompt, config, driver_opts(opts)) do
         {:ok, _run} -> halt(0)
         {:error, reason} -> fail(reason)
@@ -306,8 +310,8 @@ defmodule Goatherd.CLI do
     ArgumentError -> :warning
   end
 
-  defp load_config(opts) do
-    with {:ok, config} <- Config.load() do
+  defp load_config(opts, dir \\ nil) do
+    with {:ok, config} <- Config.load(config_dir(dir)) do
       config =
         config
         |> override(:runtime, opts[:runtime])
@@ -318,6 +322,12 @@ defmodule Goatherd.CLI do
       {:ok, config}
     end
   end
+
+  # A recorded working directory that has since been deleted is not an error:
+  # the run's sandbox is remote and still perfectly usable.
+  defp config_dir(nil), do: File.cwd!()
+
+  defp config_dir(dir), do: if(File.dir?(dir), do: dir, else: File.cwd!())
 
   defp override(config, _key, nil), do: config
   defp override(config, key, value), do: Map.put(config, key, value)

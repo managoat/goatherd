@@ -117,6 +117,10 @@ defmodule Goatherd.Driver do
     do: {:error, "that run never opened a session, so there is nothing to continue"}
 
   def continue(%Run{} = run, prompt, %Config{} = config, opts) do
+    # The runtime is a property of the run, not of the herd file in front of
+    # us: the session we are about to resume was opened by that runtime's
+    # adapter, and spawning a different one against it resumes nothing.
+    config = %{config | runtime: run.runtime || config.runtime}
     render = Render.new(quiet: opts[:quiet])
     Render.header(render, "run #{run.id} · continue")
 
@@ -311,11 +315,35 @@ defmodule Goatherd.Driver do
     end
   end
 
+  # `list_sessions/1` promises a list, not an order — sorting here rather than
+  # taking the head is the difference between attaching to this turn's adapter
+  # and attaching to one a previous turn left behind on the same sandbox.
   defp newest_session(handle) do
     case Sandbox.list_sessions(handle) do
-      {:ok, []} -> {:error, "the sandbox has no detachable session; the adapter has exited"}
-      {:ok, [session | _]} -> {:ok, session.id}
-      {:error, reason} -> {:error, {:list_sessions, reason}}
+      {:ok, []} ->
+        {:error, "the sandbox has no detachable session; the adapter has exited"}
+
+      {:ok, sessions} ->
+        {:ok, sessions |> Enum.max_by(&session_age/1) |> Map.fetch!(:id)}
+
+      {:error, reason} ->
+        {:error, {:list_sessions, reason}}
+    end
+  end
+
+  @doc """
+  Sort key for picking the session to attach to: last activity, else creation.
+
+  Comparable across the shapes an adapter may use — a `DateTime`, an ISO 8601
+  string, or nothing at all — because the field is not in the behaviour's
+  contract and only the ordering matters here.
+  """
+  @spec session_age(map()) :: String.t()
+  def session_age(session) do
+    case Map.get(session, :last_activity_at) || Map.get(session, :created_at) do
+      %DateTime{} = at -> DateTime.to_iso8601(at)
+      at when is_binary(at) -> at
+      _ -> ""
     end
   end
 

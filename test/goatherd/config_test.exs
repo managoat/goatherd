@@ -67,8 +67,15 @@ defmodule Goatherd.ConfigTest do
       assert {:error, _} = Config.load(dir)
     end
 
-    @tag :tmp_dir
-    test "no herd file anywhere is not an error", %{tmp_dir: dir} do
+    test "no herd file anywhere is not an error" do
+      # Deliberately NOT ExUnit's tmp_dir: that lives at `tmp/` inside this
+      # project, so `load/1` walks up into the repo and finds goatherd's own
+      # `.goatherd.yml`. A test for "no herd file above me" has to stand
+      # somewhere the repo is not an ancestor.
+      dir = Path.join(System.tmp_dir!(), "goatherd-test-#{System.unique_integer([:positive])}")
+      File.mkdir_p!(dir)
+      on_exit(fn -> File.rm_rf(dir) end)
+
       assert {:ok, %Config{source: nil, runtime: "claude"}} = Config.load(dir)
     end
   end
