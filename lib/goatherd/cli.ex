@@ -49,8 +49,20 @@ defmodule Goatherd.CLI do
         halt(if(args == [], do: 1, else: 0))
 
       true ->
-        dispatch(args, opts)
+        run_dispatch(args, opts)
     end
+  end
+
+  # `goatherd ps | head` closes stdout while we are still writing to it, and
+  # an unhandled write to a terminated device is a crash dump where the user
+  # expects three lines and a prompt. A closed pipe is the reader saying it
+  # has enough, which is success.
+  defp run_dispatch(args, opts) do
+    dispatch(args, opts)
+  rescue
+    ErlangError -> halt(0)
+  catch
+    :exit, _ -> halt(0)
   end
 
   defp dispatch(["run" | rest], opts), do: run(Enum.join(rest, " "), opts)
