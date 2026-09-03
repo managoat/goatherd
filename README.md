@@ -140,8 +140,8 @@ goes wrong. `GOATHERD_LOG=debug` turns the libraries' own logs back on.
 
 Built and verified live against Sprites with the `claude` runtime: fresh
 sandbox, package install, `git clone`, tool use, streamed output, a second
-turn resuming the agent's session from a separate invocation, and teardown.
-The other three runtimes reach the same code path through the same library
-and are not yet exercised here.
+turn resuming the agent's session from a separate invocation, `attach` after
+killing a driver mid-turn, and teardown. The other three runtimes reach the
+same code path through the same library and are not yet exercised here.
 
 Apache-2.0.
