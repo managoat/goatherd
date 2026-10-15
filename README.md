@@ -69,7 +69,9 @@ Sandboxes cost money and are not cleaned up automatically. Use `--rm` for
 one-shot runs or `goatherd rm --all` when finished. Turns are driven from your
 terminal; use `--yes` if a run will be unattended.
 
-Built on
+Built on `Managoat.Sandbox`, `Managoat.Runtimes` and `Managoat.ACP`, vendored
+into `lib/managoat/` from the archived
 [`managoat_sandbox`](https://github.com/managoat/managoat_sandbox),
-[`managoat_runtimes`](https://github.com/managoat/managoat_runtimes), and
-[`managoat_acp`](https://github.com/managoat/managoat_acp). Apache-2.0.
+[`managoat_runtimes`](https://github.com/managoat/managoat_runtimes) and
+[`managoat_acp`](https://github.com/managoat/managoat_acp) repositories (see
+`NOTICE`). Apache-2.0.

@@ -8,7 +8,7 @@ defmodule Goatherd.CLI do
   this module can then assume a configured runtime.
   """
 
-  alias Goatherd.{Auth, Config, Driver, Render, State}
+  alias Goatherd.{Auth, Config, Driver, Provision, Render, State}
   alias Goatherd.Runs.Run
   alias Managoat.ACP.Blocks
   alias Managoat.Sandbox
@@ -340,7 +340,7 @@ defmodule Goatherd.CLI do
   # A secret named but not present is refused before a sandbox exists, because
   # discovering it after provisioning means paying for a sandbox to learn it.
   defp check_secrets(config) do
-    case Goatherd.Provision.missing_secrets(config) do
+    case Provision.missing_secrets(config) do
       [] ->
         :ok
 

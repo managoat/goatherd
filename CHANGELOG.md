@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- `Managoat.Sandbox`, `Managoat.Runtimes` and `Managoat.ACP` are vendored into
+  `lib/managoat/` from the final releases of their archived repositories
+  (managoat_sandbox 0.5.6, managoat_runtimes 0.5.7, managoat_acp 0.6.0)
+  instead of being hex dependencies. That moves goatherd off 0.2.1 / 0.2.1 /
+  0.1.2 and onto every fix shipped since. The Sprites adapter is the only
+  sandbox kept; E2B, Daytona and the OpenTelemetry tracer were left out. The
+  libraries' tests come with them, and their test fakes live in
+  `test/support/`.
+
 ## 0.1.0
 
 First release.

@@ -9,7 +9,7 @@ defmodule Goatherd do
   things and nothing else: a Sprites token, an inference credential, and a
   pointer file naming the sandboxes it started.
 
-  The work is done by three libraries that already exist:
+  The work is done by three libraries vendored into `lib/managoat/`:
   `Managoat.Sandbox` (the machine), `Managoat.Runtimes` (getting a coding agent
   into it, speaking ACP) and `Managoat.ACP` (the protocol conversation). This
   application is the part that was previously a Phoenix server: read a config,

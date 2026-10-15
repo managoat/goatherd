@@ -36,6 +36,8 @@ defmodule Goatherd.Config do
   an empty sandbox, which is a useful thing to be able to type.
   """
 
+  alias Managoat.Runtimes
+
   @default_runtime "claude"
   @filename ".goatherd.yml"
 
@@ -132,7 +134,7 @@ defmodule Goatherd.Config do
   defp runtime(doc) do
     name = string(doc["runtime"]) || @default_runtime
 
-    case Managoat.Runtimes.for_runtime(name) do
+    case Runtimes.for_runtime(name) do
       {:ok, _mod} -> {:ok, name}
       {:error, message} -> {:error, message}
     end
@@ -170,7 +172,7 @@ defmodule Goatherd.Config do
   The agent map the `Managoat.Runtimes` callbacks read. The library types this
   as a plain map with five optional keys, so this is the whole translation.
   """
-  @spec agent(t()) :: Managoat.Runtimes.agent()
+  @spec agent(t()) :: Runtimes.agent()
   def agent(%__MODULE__{} = config) do
     %{
       runtime: config.runtime,

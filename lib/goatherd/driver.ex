@@ -23,10 +23,11 @@ defmodule Goatherd.Driver do
   holds the state that matters.
   """
 
-  alias Goatherd.{Config, Provision, Render, State}
+  alias Goatherd.{Auth, Config, Provision, Render, State}
   alias Goatherd.Runs.Run
   alias Managoat.ACP.{Blocks, Peer}
   alias Managoat.Runtimes
+  alias Managoat.Runtimes.ACP
   alias Managoat.Sandbox
 
   # How long the driver waits with nothing at all arriving before it gives up
@@ -54,7 +55,7 @@ defmodule Goatherd.Driver do
       provider: :sprites,
       runtime: config.runtime,
       prompt: prompt,
-      cwd: Runtimes.ACP.cwd(config.runtime),
+      cwd: ACP.cwd(config.runtime),
       status: :starting,
       created_at: DateTime.utc_now() |> DateTime.to_iso8601(),
       workdir: File.cwd!(),
@@ -216,7 +217,7 @@ defmodule Goatherd.Driver do
 
   defp provision(handle, config, render) do
     on_stage = fn name, status -> Render.stage(render, name, status) end
-    Provision.run(handle, config, Goatherd.Auth.inference_credentials(), on_stage)
+    Provision.run(handle, config, Auth.inference_credentials(), on_stage)
   end
 
   defp rebuild_env(config) do
@@ -227,12 +228,12 @@ defmodule Goatherd.Driver do
        config,
        runtime_mod,
        Config.agent(config),
-       Goatherd.Auth.inference_credentials()
+       Auth.inference_credentials()
      )}
   end
 
   defp spawn_adapter(handle, %Config{runtime: runtime}, sprite_env) do
-    {bin, args} = Runtimes.ACP.command(runtime)
+    {bin, args} = ACP.command(runtime)
 
     # `stdin: true` is not optional on this path and its absence does not look
     # like an error: an ACP adapter whose stdin is closed reads EOF and exits
@@ -248,7 +249,7 @@ defmodule Goatherd.Driver do
     case Sandbox.spawn(handle, bin, args,
            owner: self(),
            env: sprite_env,
-           dir: Sandbox.host_path(handle, Runtimes.ACP.cwd(runtime)),
+           dir: Sandbox.host_path(handle, ACP.cwd(runtime)),
            stdin: true,
            detachable: true
          ) do
@@ -267,9 +268,9 @@ defmodule Goatherd.Driver do
       prompt: prompt,
       mode: if(resume, do: :continue, else: :run),
       session_id: resume,
-      cwd: Runtimes.ACP.cwd(config.runtime),
+      cwd: ACP.cwd(config.runtime),
       model: config.model,
-      mcp_servers: Runtimes.ACP.mcp_servers(Config.agent(config)),
+      mcp_servers: ACP.mcp_servers(Config.agent(config)),
       permission_policy: policy(config, opts)
     )
   end
