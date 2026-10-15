@@ -1,7 +1,7 @@
 defmodule Goatherd.DriverTest do
   use ExUnit.Case, async: true
 
-  alias Goatherd.Driver
+  alias Goatherd.{Config, Driver}
 
   describe "drop_replayed/2" do
     test "with no set, every line is live" do
@@ -28,17 +28,17 @@ defmodule Goatherd.DriverTest do
 
   describe "policy/2" do
     test "defaults to allowing everything except running commands" do
-      {:ok, config} = Goatherd.Config.from_map(%{})
+      {:ok, config} = Config.from_map(%{})
       assert Driver.policy(config, []) == %{"default" => "auto_allow", "execute" => "ask"}
     end
 
     test "--yes flattens to allow-all, which is what unattended means" do
-      {:ok, config} = Goatherd.Config.from_map(%{})
+      {:ok, config} = Config.from_map(%{})
       assert Driver.policy(config, yes: true) == %{"default" => "auto_allow"}
     end
 
     test "a herd file policy is used verbatim, with keys stringified" do
-      {:ok, config} = Goatherd.Config.from_map(%{"permissions" => %{"default" => "auto_deny"}})
+      {:ok, config} = Config.from_map(%{"permissions" => %{"default" => "auto_deny"}})
       assert Driver.policy(config, []) == %{"default" => "auto_deny"}
     end
   end

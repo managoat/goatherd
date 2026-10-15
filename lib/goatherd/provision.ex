@@ -18,6 +18,7 @@ defmodule Goatherd.Provision do
 
   alias Goatherd.Config
   alias Managoat.Runtimes
+  alias Managoat.Runtimes.{ACP, Instructions}
   alias Managoat.Sandbox
 
   @home "/home/sprite"
@@ -191,12 +192,12 @@ defmodule Goatherd.Provision do
   end
 
   defp adapter(handle, %Config{runtime: runtime}, env) do
-    Runtimes.ACP.install(handle, runtime, env)
+    ACP.install(handle, runtime, env)
   end
 
   defp runtime_config(handle, runtime_mod, %Config{runtime: runtime} = config, agent, env) do
     with :ok <- maybe(runtime_mod, :write_config, [handle, agent]),
-         :ok <- Runtimes.Instructions.write(handle, runtime, instructions_agent(config)) do
+         :ok <- Instructions.write(handle, runtime, instructions_agent(config)) do
       maybe(runtime_mod, :prepare_sandbox, [handle, agent, env])
     end
   end

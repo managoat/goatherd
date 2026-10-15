@@ -1,0 +1,31 @@
+goatherd
+Copyright (c) 2026 Jake Gaylor
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+lib/managoat/, priv/, test/managoat/, test/support/ and test/live/ are
+vendored from three Apache-2.0 libraries, each Copyright (c) 2026 Jake Gaylor
+and each extracted from Fountain (https://github.com/managoat/fountain) under
+its decisions/0037. Their repositories are archived; the code was copied from
+the last commit of each:
+
+  Managoat.Sandbox  (managoat_sandbox 0.5.6)
+    https://github.com/managoat/managoat_sandbox @ 7729241
+    Kept: the behaviour, the facade and the Sprites adapter.
+    Left out: the E2B and Daytona adapters and their tests, and E2B's live test.
+
+  Managoat.Runtimes (managoat_runtimes 0.5.7)
+    https://github.com/managoat/managoat_runtimes @ 395bc8c
+    Kept: all four runtimes (claude, codex, gemini, opencode) and priv/.
+
+  Managoat.ACP      (managoat_acp 0.6.0)
+    https://github.com/managoat/managoat_acp @ 52b591f
+    Left out: Managoat.ACP.Tracer (OpenTelemetry spans) and its test.
+
+Each library's Testing.* modules moved from lib/ to test/support/, so they
+compile for tests only. Beyond that, the changes are: Managoat.Sandbox's
+default adapter map names Sprites alone; the gemini session script is read
+from goatherd's priv/ at compile time; module docs that named a removed part
+or a library README say so; and the tests that exercised E2B or Daytona
+through the facade lost those cases. `diff -r` against the commits above
+shows each.
